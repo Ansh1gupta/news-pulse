@@ -1,0 +1,17 @@
+name: Scheduled scrape
+on:
+  schedule:
+    - cron: '0 * * * *'   # hourly
+  workflow_dispatch: {}
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r scraper/requirements.txt
+      - run: cd scraper && python pipeline.py
+      # NOTE: for this to persist data, DB_PATH should point at a hosted DB
+      # (see README) rather than local sqlite in the ephemeral runner.
