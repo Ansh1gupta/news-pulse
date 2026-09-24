@@ -1,24 +1,26 @@
 # News Pulse — Topic-Clustered News Timeline
 
-**Live Demo:** https://news-pulse-eight-phi.vercel.app/  
-**Backend API:** https://news-pulse-docker.onrender.com  
+**Live Demo:** https://news-pulse-eight-phi.vercel.app/
+**Backend API:** https://news-pulse-docker.onrender.com
 **GitHub:** https://github.com/Ansh1gupta/news-pulse
 
-News Pulse is a full-stack news aggregation and topic-clustering application that collects
-articles from multiple RSS feeds, extracts article content and keywords, groups related
-articles into topic clusters, and presents the results through a visual timeline interface.
+News Pulse is a full-stack news aggregation and topic-clustering application that collects articles from multiple RSS feeds, extracts article content and keywords, groups related articles into topic clusters, and presents them through a visual news timeline.
+
+## Features
+
+* Aggregates news from multiple RSS feeds
+* Extracts article content and keywords
+* Automatically groups related articles into topic clusters
+* Displays clustered news through a timeline interface
+* Provides REST APIs for articles, clusters, and ingestion
+* Supports manual news ingestion through the backend
+* Prevents duplicate article ingestion
+* Dockerized backend with both Node.js and Python
+* Deployed frontend and backend
 
 ## Architecture
 
 ```text
-news-pulse/
-├── scraper/       Python — RSS ingestion, article extraction, keyword extraction,
-│                  and topic clustering
-├── backend/       Node.js + Express — REST API, SQLite access, and scraper triggering
-├── frontend/      Next.js/React — timeline visualization, cluster details, and source filtering
-├── data/          SQLite database
-├── Dockerfile     Docker image containing Node.js, Python, and project dependencies
-└── .dockerignore
 RSS Feeds
     ↓
 Python Scraper
@@ -31,487 +33,364 @@ Topic Clustering
     ↓
 SQLite Database
     ↓
-Node.js / Express API
+Node.js + Express API
     ↓
 Next.js / React Frontend
     ↓
-Visual News Timeline
-Technology Stack
-Frontend
-Next.js
-React
-JavaScript
-Timeline visualization
-Cluster detail views
-Source filtering
-Backend
-Node.js
-Express
-REST API
-CORS
-UUID-based ingestion jobs
-Node's built-in node:sqlite
-Scraper
-Python
-Feedparser
-Requests
-BeautifulSoup
-Trafilatura
-SQLite
-Keyword-based clustering
-Deployment
-Vercel — frontend
-Render — Docker-based backend
-Docker — combines Node.js and Python into one deployable service
-SQLite — application database
-News Sources
+News Timeline
+```
 
-The scraper currently uses these RSS feeds:
+## Project Structure
 
-BBC News — http://feeds.bbci.co.uk/news/rss.xml
-NPR — https://feeds.npr.org/1001/rss.xml
-Al Jazeera — https://www.aljazeera.com/xml/rss/all.xml
+```text
+news-pulse/
+├── frontend/       Next.js / React frontend
+├── backend/        Node.js + Express REST API
+├── scraper/        Python RSS scraper and clustering
+├── data/           SQLite database
+├── Dockerfile      Docker configuration
+└── .dockerignore
+```
 
-The feed configuration is maintained in:
+## Technology Stack
 
+### Frontend
+
+* Next.js
+* React
+* JavaScript
+* Timeline visualization
+
+### Backend
+
+* Node.js
+* Express.js
+* REST API
+* CORS
+* UUID
+* SQLite
+
+### Scraper
+
+* Python
+* Feedparser
+* Requests
+* BeautifulSoup
+* Trafilatura
+* SQLite
+
+### Deployment
+
+* Vercel — Frontend
+* Render — Backend
+* Docker — Containerization
+* SQLite — Database
+
+## News Sources
+
+The scraper currently collects news from:
+
+* BBC News
+* NPR
+* Al Jazeera
+
+Feed configuration is maintained in:
+
+```text
 scraper/config.py
+```
 
-The scraper is designed to skip articles that have already been ingested using their RSS
-GUID/link, preventing duplicate entries across repeated pipeline runs.
+The scraper checks the article GUID/link before inserting an article to prevent duplicate ingestion.
 
-Topic Clustering
+## Topic Clustering
 
-News Pulse currently uses a deterministic keyword-overlap clustering approach rather
-than a machine-learning model.
+News Pulse uses a deterministic keyword-overlap approach to group related articles.
 
-The approach was chosen because it is:
+The process is:
 
-Lightweight
-Deterministic
-Easy to understand
-Easy to deploy
-Free from additional ML dependencies
-How clustering works
+1. Extract important words from the article title and summary.
+2. Remove stopwords and very short words.
+3. Give higher importance to title keywords.
+4. Compare article keywords with existing clusters.
+5. Add the article to a matching cluster when enough keywords overlap.
+6. Create a new cluster when no suitable match exists.
+7. Update cluster keywords as new articles are added.
 
-For each article:
+The clustering implementation is located in:
 
-Significant words are extracted from the article title and summary.
-Title terms receive additional weight because headlines usually contain the strongest
-topic signals.
-Stopwords and very short tokens are removed.
-The resulting keywords are compared with the keywords already associated with existing
-clusters.
-If at least 3 keywords overlap, the article is assigned to that cluster.
-Otherwise, a new cluster is created.
-Cluster keywords are updated as new related articles are added.
-
-The main configuration values are controlled through:
-
-scraper/config.py
-
-including:
-
-MIN_SHARED_KEYWORDS
-TOP_KEYWORDS_PER_ARTICLE
-
-The current default shared-keyword threshold is:
-
-3
-Cluster labels
-
-Cluster labels are generated from the most important keywords in the cluster.
-
-For example:
-
-Election / Senate / Vote
-
-The clustering logic is implemented in:
-
+```text
 scraper/clustering.py
-Current limitation
+```
 
-The current clustering process is incremental and therefore order-dependent.
+### Current Limitation
 
-An article is compared against clusters that already exist when that article is processed.
-This means two articles covering the same story can occasionally end up in separate clusters
-if their vocabulary is sufficiently different.
+The current clustering approach is incremental and order-dependent. Articles are compared with clusters that already exist at the time of processing.
 
-A future improvement would be a full batch clustering/reclustering process using techniques
-such as TF-IDF and cosine similarity or semantic embeddings.
+A future version could use TF-IDF with cosine similarity or semantic embeddings for more advanced topic matching.
 
-Article Ingestion Pipeline
+## Article Ingestion Pipeline
 
-The main pipeline is:
+The main ingestion pipeline is:
 
+```text
 scraper/pipeline.py
+```
 
-The pipeline:
+It performs the following operations:
 
-Initializes the SQLite database.
-Fetches configured RSS feeds.
-Normalizes feed entries.
-Checks whether an article has already been ingested.
-Extracts the full article text where possible.
-Extracts keywords from the article.
-Stores the article in SQLite.
-Assigns the article to an existing cluster or creates a new cluster.
-Continues processing remaining articles.
-Reports ingestion statistics when finished.
+1. Initialize the database.
+2. Fetch configured RSS feeds.
+3. Check for duplicate articles.
+4. Extract article content where available.
+5. Extract keywords.
+6. Store articles in SQLite.
+7. Assign articles to existing clusters or create new clusters.
+8. Continue processing if individual article extraction fails.
+9. Report ingestion results.
 
-Existing articles are skipped using their unique RSS GUID/link.
+## Database
 
-If full article extraction fails, the pipeline is designed to continue rather than crash the
-entire ingestion run.
+News Pulse uses SQLite, allowing the project to run without an external database service.
 
-Database
+Database:
 
-News Pulse uses SQLite to avoid requiring an external database service during development
-and deployment.
-
-The database file is:
-
+```text
 data/news_pulse.db
+```
 
-The main tables are:
-
-articles
-
-Stores:
-
-Article ID
-GUID
-Source
-Title
-Summary
-Full article body
-URL
-Published timestamp
-Cluster ID
-Keywords
-Creation timestamp
-clusters
+### `articles`
 
 Stores:
 
-Cluster ID
-Cluster label
-Cluster keywords
-Creation timestamp
-ingest_jobs
+* Article ID
+* GUID
+* Source
+* Title
+* Summary
+* Article body
+* URL
+* Published timestamp
+* Cluster ID
+* Keywords
+* Creation timestamp
 
-Stores information about ingestion jobs, including:
+### `clusters`
 
-Job ID
-Status
-Logs
-Start time
-Finish time
+Stores:
 
-The Node.js backend uses Node's built-in:
+* Cluster ID
+* Cluster label
+* Cluster keywords
+* Creation timestamp
 
-node:sqlite
+### `ingest_jobs`
 
-while the Python scraper uses Python's standard:
+Stores:
 
-sqlite3
+* Job ID
+* Status
+* Logs
+* Start time
+* Finish time
 
-Both components work with the same database file.
+## Backend API
 
-Backend API
+| Method | Endpoint                | Description                         |
+| ------ | ----------------------- | ----------------------------------- |
+| GET    | `/health`               | Backend health check                |
+| GET    | `/clusters`             | List available topic clusters       |
+| GET    | `/clusters/:id`         | Get cluster details and articles    |
+| GET    | `/timeline`             | Get timeline-ready news data        |
+| POST   | `/ingest/trigger`       | Start the Python ingestion pipeline |
+| GET    | `/ingest/status/:jobId` | Check ingestion job status          |
 
-The Express backend provides the following endpoints:
+### Health Check
 
-EndpointDescription
-GET /healthHealth check for the backend
-GET /clustersReturns available topic clusters
-GET /clusters/:idReturns cluster information and its articles
-GET /timelineReturns timeline-ready cluster/article data
-POST /ingest/triggerStarts the Python ingestion pipeline
-GET /ingest/status/:jobIdReturns the status and logs of an ingestion job
-Health check
+```text
 GET /health
+```
 
-Response:
+Example response:
 
+```json
 {
   "status": "ok"
 }
-Trigger ingestion
-POST /ingest/trigger
+```
 
-The endpoint starts the Python pipeline as a background subprocess and immediately returns
-a job ID.
+### Trigger Ingestion
+
+```text
+POST /ingest/trigger
+```
+
+The backend starts the Python ingestion pipeline and returns a job ID.
 
 Example:
 
+```json
 {
   "jobId": "example-job-id",
   "status": "running"
 }
+```
 
-The job can then be monitored through:
+The ingestion job can then be monitored using:
 
+```text
 GET /ingest/status/:jobId
-Docker Deployment
+```
 
-The backend and scraper are deployed together using Docker.
+## Docker Deployment
 
-Why Docker?
+The backend and Python scraper are deployed together using Docker.
 
-The Node.js backend needs to execute:
+The backend needs Python to execute the scraper as a subprocess. A Node.js-only production environment does not include Python, so the project uses Docker to package both runtimes and their dependencies into the same container.
 
-scraper/pipeline.py
+The Docker setup:
 
-as a subprocess.
+1. Uses Node.js.
+2. Installs Python.
+3. Installs Node.js dependencies.
+4. Installs Python dependencies.
+5. Creates the application data directory.
+6. Configures the Python runtime.
+7. Starts the Express backend.
 
-A normal Node-only Render Web Service does not include a Python interpreter. This caused
-the ingestion endpoint to fail with errors such as:
+This allows the Node.js API to execute the Python scraper inside the production container.
 
-spawn python3 ENOENT
+## Deployment
 
-The solution was to create a Docker image containing both:
+### Frontend
 
-Node.js
-Python
+The frontend is deployed on Vercel.
 
-along with their respective dependencies.
-
-The root-level Dockerfile:
-
-Starts from a Node.js 22 image.
-Installs Python 3 and pip.
-Copies the complete project.
-Installs Node dependencies.
-Installs Python dependencies.
-Creates the application data directory.
-Sets PYTHON_BIN=python3.
-Starts the Express backend.
-
-This allows the Node backend and Python scraper to operate inside the same production
-container.
-
-Docker Project Structure
-
-Inside the Docker container the application is organized approximately as:
-
-/app/
-├── backend/
-├── scraper/
-├── frontend/
-├── data/
-└── Dockerfile
-
-The scraper is available at:
-
-/app/scraper
-
-and the SQLite database is located at:
-
-/app/data/news_pulse.db
-Deployment
-Frontend
-
-The frontend is deployed on:
-
-Vercel
-
-Production URL:
-
+**Live Demo:**
 https://news-pulse-eight-phi.vercel.app/
 
-The frontend uses the environment variable:
+The frontend uses:
 
+```text
 NEXT_PUBLIC_API_BASE
+```
 
-to communicate with the deployed backend.
+to communicate with the backend API.
 
-Frontend project root on Vercel:
+### Backend
 
-frontend
-Backend
+The backend and scraper are deployed on Render using Docker.
 
-The backend and Python scraper are deployed on:
-
-Render
-
-Deployment type:
-
-Docker Web Service
-
-Production API:
-
+**Backend API:**
 https://news-pulse-docker.onrender.com
 
-The service is built from the repository-root:
+The service is built using the repository-root `Dockerfile`.
 
-Dockerfile
-Automatic deployment
+### GitHub
 
-The project is connected to the main branch.
+**Repository:**
+https://github.com/Ansh1gupta/news-pulse
 
-After changes are pushed to GitHub, the deployment platforms can rebuild and deploy the
-updated application.
+## Local Development
 
-Local Development
-1. Run the Python scraper
+### 1. Run the Scraper
 
-From the project root:
-
+```bash
 cd scraper
 pip install -r requirements.txt
 python pipeline.py
+```
 
-The first run initializes the database and begins ingesting articles.
+### 2. Run the Backend
 
-Repeated runs skip articles that have already been ingested.
-
-2. Run the backend
-
-From the project root:
-
+```bash
 cd backend
 npm install
 npm start
+```
 
-The backend normally runs on:
+Backend:
 
+```text
 http://localhost:4000
+```
 
-For local ingestion, make sure the Python executable is available and configure
-PYTHON_BIN if necessary.
+### 3. Run the Frontend
 
-On Windows this may be:
-
-python
-
-while Linux/Docker commonly uses:
-
-python3
-
-The backend requires Node.js 22+ because it uses Node's built-in node:sqlite module.
-
-3. Run the frontend
-
-From the project root:
-
+```bash
 cd frontend
 npm install
 npm run dev
+```
 
-The frontend normally runs on:
+Frontend:
 
+```text
 http://localhost:3000
+```
 
-Configure:
+Configure `NEXT_PUBLIC_API_BASE` to point to the backend URL.
 
-NEXT_PUBLIC_API_BASE
+## Deployment Fixes
 
-to point to the desired backend URL.
+### SQLite Schema Initialization
 
-Environment Variables
+The backend initializes the required SQLite tables when it starts, allowing a fresh deployment to create the database schema automatically.
 
-Important configuration variables include:
+### Python Runtime
 
-DB_PATH
-PYTHON_BIN
-MIN_SHARED_KEYWORDS
-TOP_KEYWORDS_PER_ARTICLE
-NEXT_PUBLIC_API_BASE
+The original Node.js-only deployment could not execute the Python scraper because Python was not available in the runtime environment.
 
-The exact values can differ between local development and production.
+Docker solved this by packaging Node.js and Python together.
 
-Secrets and local .env files are excluded from the Docker build through .dockerignore.
+### Scraper Path
 
-Deployment Fixes and Engineering Decisions
+The backend locates the scraper from the project structure:
 
-During deployment, several issues were identified and fixed.
-
-SQLite schema initialization
-
-The first deployed backend failed because the clusters table did not exist in the fresh
-deployment environment.
-
-The backend database initialization was updated so that the required tables are created
-automatically when the application starts.
-
-This allows a fresh deployment to initialize its database without manually creating tables.
-
-Scraper path
-
-The ingestion route was updated to correctly locate the scraper directory from the backend:
-
+```text
 news-pulse/
 ├── backend/
 ├── scraper/
 └── data/
+```
 
-The Node backend now resolves the scraper path correctly when running inside Docker.
+## Limitations
 
-Python runtime
+### SQLite Persistence
 
-The original Render Node runtime did not contain Python.
+The current deployment uses SQLite inside the container filesystem. Container filesystems can be ephemeral, so database data may be lost after certain restarts or redeployments.
 
-The ingestion endpoint therefore could not launch the Python scraper.
+A production version could use a persistent database such as PostgreSQL.
 
-Docker was introduced to package:
+### Clustering Stability
 
-Node.js + Python + dependencies
+The keyword-overlap clustering method is order-dependent.
 
-into a single deployable service.
+A future version could use TF-IDF/cosine similarity or semantic embeddings for more stable topic grouping.
 
-Limitations
-SQLite persistence
+### Cross-Source Story Matching
 
-The current Render free-tier deployment stores SQLite inside the container filesystem.
+Different news sources may describe the same event using different vocabulary. Semantic similarity could improve matching of related stories across sources.
 
-That filesystem is ephemeral, so the database should not be treated as permanent production
-storage.
+### Article Extraction
 
-A future production version should move persistent application data to a managed database
-such as PostgreSQL.
+Some websites may restrict or interrupt full article extraction. The pipeline is designed to continue processing and use available RSS information when full extraction is unavailable.
 
-Order-dependent clustering
+## Future Improvements
 
-The current keyword-overlap clustering approach is incremental and can be order-dependent.
+* PostgreSQL for persistent production storage
+* Scheduled news ingestion
+* Automated reclustering
+* Semantic embeddings
+* Improved cross-source story matching
+* Additional news sources
+* Search functionality
+* Pagination
+* Automated tests
+* Improved monitoring and logging
+* Topic trend analytics
 
-A more advanced implementation could periodically perform a full reclustering pass using
-TF-IDF/cosine similarity or semantic embeddings.
+## Project Links
 
-Cross-source story matching
-
-Different news outlets can describe the same event using very different vocabulary.
-
-A future semantic similarity system could improve cross-source story merging.
-
-Article extraction
-
-Full article extraction depends on the structure and availability of each source website.
-If extraction fails for an article, the pipeline continues processing rather than terminating
-the entire ingestion process.
-
-Future Improvements
-
-Potential future improvements include:
-
-PostgreSQL for persistent production storage
-Scheduled ingestion
-Scheduled full reclustering
-Semantic embeddings for better story matching
-Better cross-source duplicate detection
-More RSS/news sources
-Search functionality
-Pagination for large clusters
-Improved monitoring and logging
-Background job processing
-Automated tests
-More advanced analytics around topic trends
-Project Links
-
-Live Demo:
-https://news-pulse-eight-phi.vercel.app/
-
-Backend API:
-https://news-pulse-docker.onrender.com
-
-GitHub Repository:
-https://github.com/Ansh1gupta/news-pulse
+* **Live Demo:** https://news-pulse-eight-phi.vercel.app/
+* **Backend API:** https://news-pulse-docker.onrender.com
+* **GitHub:** https://github.com/Ansh1gupta/news-pulse
