@@ -11,6 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/debug/python', require('./routes/debug'));
 
 app.use('/clusters', clustersRouter);
 app.use('/timeline', timelineRouter);
@@ -19,7 +20,7 @@ app.use('/ingest', ingestRouter);
 // 404 for anything else
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 
-// Central error handler — makes sure a thrown error becomes a 500, not a crash
+// Central error handler â€” makes sure a thrown error becomes a 500, not a crash
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ error: 'Internal server error' });
